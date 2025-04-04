@@ -30,5 +30,3 @@ def get_result():
     else:
         return jsonify({"result": "No result available yet."}), 404
 
-if _name_ == '_main_':
-    app.run(port=5000, debug=True)
