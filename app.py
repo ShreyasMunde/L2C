@@ -4,10 +4,10 @@ import requests
 
 app = Flask(__name__)
 
-# Enable CORS for specific origin
-CORS(app, origins=["http://localhost:3000"])
+# Enable CORS for http://localhost:3000
+CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
-# Store the last result in memory (for simplicity)
+# Store the last result in memory
 last_result = None
 
 @app.route('/upload', methods=['POST'])
@@ -21,7 +21,7 @@ def handle_upload():
     try:
         response = requests.post(colab_url, files=files)
         data = response.json()
-        last_result = data  # store it temporarily
+        last_result = data
         return jsonify({"message": "File uploaded and being processed."})
     except Exception as e:
         print("Error:", e)
@@ -34,5 +34,5 @@ def get_result():
     else:
         return jsonify({"result": "No result available yet."}), 404
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     app.run(debug=True)
