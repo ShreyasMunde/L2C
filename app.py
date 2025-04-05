@@ -1,24 +1,27 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS
-import base64
+import requests
 
 app = Flask(__name__)
-CORS(app)
 
-# Store the last result in memory
+# Store the last result in memory (for simplicity)
 last_result = None
 
 @app.route('/upload', methods=['POST'])
-def upload_file():
-    if 'file' not in request.files:
-        return jsonify({'error': 'No file part'}), 400
-
+def handle_upload():
+    global last_result
     file = request.files['file']
-    file_content = file.read()
-    encoded_image = base64.b64encode(file_content).decode('utf-8')
 
-    return jsonify({'image_base64': encoded_image})
+    colab_url = "https://your-colab-url.ngrok.io/predict"
+    files = {'file': (file.filename, file.stream, file.content_type)}
 
+    try:
+        response = requests.post(colab_url, files=files)
+        data = response.json()
+        last_result = data  # store it temporarily
+        return jsonify({"message": "File uploaded and being processed."})
+    except Exception as e:
+        print("Error:", e)
+        return jsonify({"error": "Failed to connect to Colab"}), 500
 
 @app.route('/result', methods=['GET'])
 def get_result():
@@ -26,6 +29,3 @@ def get_result():
         return jsonify(last_result)
     else:
         return jsonify({"result": "No result available yet."}), 404
-
-if __name__ == '__main__':
-    app.run(debug=True)
