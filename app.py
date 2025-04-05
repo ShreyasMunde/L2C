@@ -1,31 +1,38 @@
-from flask import Flask, request, jsonify
-import requests
+from flask import Flask, request, jsonify, send_file
+import os
 
 app = Flask(__name__)
 
-# Store the last result in memory (for simplicity)
+UPLOAD_FOLDER = "/tmp"
+SAVED_FILE_PATH = os.path.join(UPLOAD_FOLDER, "uploaded_file.png")
 last_result = None
 
 @app.route('/upload', methods=['POST'])
 def handle_upload():
     global last_result
+
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part in request"}), 400
+
     file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
 
-    colab_url = "https://your-colab-url.ngrok.io/predict"
-    files = {'file': (file.filename, file.stream, file.content_type)}
+    file.save(SAVED_FILE_PATH)
+    last_result = {"status": "File saved", "filename": file.filename}
 
-    try:
-        response = requests.post(colab_url, files=files)
-        data = response.json()
-        last_result = data  # store it temporarily
-        return jsonify({"message": "File uploaded and being processed."})
-    except Exception as e:
-        print("Error:", e)
-        return jsonify({"error": "Failed to connect to Colab"}), 500
+    return jsonify({"message": "File uploaded successfully."})
 
 @app.route('/result', methods=['GET'])
 def get_result():
     if last_result:
         return jsonify(last_result)
     else:
-        return jsonify({"result": "No result available yet."}), 404
+        return jsonify({"error": "No result available yet."}), 404
+
+@app.route('/download', methods=['GET'])
+def download_file():
+    if os.path.exists(SAVED_FILE_PATH):
+        return send_file(SAVED_FILE_PATH, mimetype='image/png')
+    else:
+        return jsonify({"error": "File not found"}), 404
